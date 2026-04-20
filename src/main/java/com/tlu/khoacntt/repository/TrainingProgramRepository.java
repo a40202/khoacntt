@@ -1,0 +1,9 @@
+package com.tlu.khoacntt.repository;
+
+import com.tlu.khoacntt.entity.TrainingProgram;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface TrainingProgramRepository extends JpaRepository<TrainingProgram, Integer> {
+}
