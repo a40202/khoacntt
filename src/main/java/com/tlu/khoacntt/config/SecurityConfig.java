@@ -33,6 +33,8 @@ public class SecurityConfig {
 
                 // Public GET
                 .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/public/contact").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/public/posts/*/view").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
 
                 // Swagger

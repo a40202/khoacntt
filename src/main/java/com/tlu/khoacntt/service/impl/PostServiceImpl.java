@@ -117,6 +117,9 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public PostResponse createPost(PostRequest request) {
+        if (request.getAdminId() == null || request.getAdminId().isBlank()) {
+            throw new IllegalArgumentException("ID người đăng không được để trống");
+        }
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Không tìm thấy danh mục với ID: " + request.getCategoryId()));
@@ -217,13 +220,82 @@ public class PostServiceImpl implements PostService {
         return slug;
     }
 
-    // 6. Xóa bài viết
+    // Tăng lượt xem +1 (gọi từ public API)
+    @Override
+    @Transactional
+    public void incrementView(Integer id) {
+        if (!postRepository.existsById(id)) {
+            throw new com.tlu.khoacntt.exception.ResourceNotFoundException("Không tìm thấy bài viết với ID: " + id);
+        }
+        postRepository.incrementViewCount(id);
+    }
+
+    // 6. Lấy chi tiết bài viết theo ID (Admin dùng)
+    @Override
+    @Transactional(readOnly = true)
+    public PostResponse getPostById(Integer id) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài viết với ID: " + id));
+        return postMapper.toResponse(post);
+    }
+
+    // 7. Cập nhật bài viết
+    @Override
+    @Transactional
+    public PostResponse updatePost(Integer id, PostRequest request) {
+        // Tìm bài viết hiện có
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy bài viết với ID: " + id));
+
+        // Cập nhật danh mục nếu thay đổi
+        if (!post.getCategory().getId().equals(request.getCategoryId())) {
+            Category category = categoryRepository.findById(request.getCategoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Không tìm thấy danh mục với ID: " + request.getCategoryId()));
+            post.setCategory(category);
+        }
+
+        // Xử lý slug: chỉ cập nhật nếu slug mới khác slug cũ
+        String newSlug = request.getSlug();
+        if (newSlug != null && !newSlug.isBlank()) {
+            newSlug = newSlug.trim();
+            // Kiểm tra slug mới có trùng với bài viết KHÁC không (không phải chính nó)
+            if (!newSlug.equals(post.getSlug()) && postRepository.existsBySlug(newSlug)) {
+                throw new IllegalArgumentException("Slug đã tồn tại: " + newSlug);
+            }
+            post.setSlug(newSlug);
+        } else if (!post.getTitle().equals(request.getTitle())) {
+            // Nếu không truyền slug nhưng tiêu đề thay đổi → tự sinh slug mới
+            String base = slugifyTitle(request.getTitle());
+            // Loại trừ slug hiện tại của chính bài viết này khi kiểm tra unique
+            String generatedSlug = base;
+            int n = 0;
+            while (postRepository.existsBySlug(generatedSlug) && !generatedSlug.equals(post.getSlug())) {
+                generatedSlug = base + "-" + (++n);
+            }
+            post.setSlug(generatedSlug);
+        }
+
+        // Cập nhật các trường còn lại
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        if (request.getThumbnail() != null) {
+            post.setThumbnail(request.getThumbnail());
+        }
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            post.setStatus(request.getStatus());
+        }
+
+        return postMapper.toResponse(postRepository.save(post));
+    }
+
+    // 8. Xóa bài viết
     @Override
     @Transactional
     public void deletePost(Integer id) {
         if (!postRepository.existsById(id)) {
             throw new ResourceNotFoundException("Không tìm thấy bài viết để xóa với ID: " + id);
         }
-        postRepository.deleteById(id);  
+        postRepository.deleteById(id);
     }
 }

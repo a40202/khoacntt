@@ -27,7 +27,6 @@ public class PostRequest {
     @NotNull(message = "Vui lòng chọn danh mục bài viết")
     private Integer categoryId;
 
-    @NotBlank(message = "ID người đăng không được để trống")
     private String adminId;
 
 

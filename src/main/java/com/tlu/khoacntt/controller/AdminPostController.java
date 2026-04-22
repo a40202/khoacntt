@@ -42,13 +42,29 @@ public class AdminPostController {
     ) {
         return new ResponseEntity<>(postService.uploadPostImage(postId, file), HttpStatus.CREATED);
     }
+    // Lấy chi tiết 1 bài viết theo ID (Admin dùng để load form sửa)
+    @GetMapping("/{id}")
+    public ResponseEntity<PostResponse> getPostById(@PathVariable Integer id) {
+        return ResponseEntity.ok(postService.getPostById(id));
+    }
+
+    // Cập nhật bài viết — adminId không bắt buộc khi update (giữ nguyên người đăng ban đầu)
+    @PutMapping("/{id}")
+    public ResponseEntity<PostResponse> updatePost(
+            @PathVariable Integer id,
+            @Valid @RequestBody PostRequest request
+    ) {
+        return ResponseEntity.ok(postService.updatePost(id, request));
+    }
+
     // Xóa bài viết
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable Integer id) {
         postService.deletePost(id);
         return ResponseEntity.noContent().build();
     }
-    //Lấy danh sách bài viết theo danh mục
+
+    // Lấy danh sách bài viết theo danh mục
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<PostResponse>> getPostsByCategory(@PathVariable Integer categoryId) {
         return ResponseEntity.ok(postService.getPostsByCategory(categoryId));
